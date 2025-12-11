@@ -1,0 +1,163 @@
+﻿
+@{
+RenderFragment<bool> StatusRender = (bool isReady) =>
+    @<div class="inline-grid *:[grid-area:1/1]">
+        @{ var status = isReady ? "status-success" : "status-error"; }
+        @if (isReady) { <div class="status @status animate-ping"></div> }
+        <div class="status @status"></div>
+    </div>;
+}
+
+<main class="flex gap-2">
+    <section class="flex flex-col gap-2">
+        <div id="Pomodoro" class="alert alert-info alert-outline flex items-center justify-center flex flex-col">
+            <code class="radial-progress text-4xl !text-green-500" style="--value:@(porcentaje.ToString("00")); --size:12rem; --thickness: 10px;" role="progressbar">
+                <pre>@($"{CurrentTime.Minutes.ToString("00")}:{CurrentTime.Seconds.ToString("00")}")</pre>
+            </code>
+            <div class="flex gap-2 w-full">
+                <button class="btn btn-xs btn-soft btn-primary flex-1" @onclick="Reset"><i class="nf nf-fa-square" /></button>
+                @if (isRunning) {
+                    <button class="btn btn-xs btn-soft btn-primary flex-1" @onclick="Stop"><i class="nf nf-fa-pause" /></button>
+                } else {
+                    <button class="btn btn-xs btn-soft btn-primary flex-1" @onclick="Play"><i class="nf nf-fa-play" /></button>
+                }
+            </div>
+        </div>
+        <div id="Cronometro" class="alert alert-info alert-outline flex justify-center group">
+            <span class="flex-1 text-center">@($"{Chronometer.Hours.ToString("00")}h {Chronometer.Minutes.ToString("00")}m {Chronometer.Seconds.ToString("00")}s")</span>
+            <button class="btn btn-xs btn-ghost hidden group-hover:block m-0" @onclick="() => Chronometer = TimeSpan.Zero"><i class="nf nf-fa-square" /></button>
+        </div>
+    </section>
+    <section id="Phases" class="alert alert-info alert-outline flex flex-col min-w-xs">
+        <a class="card-title" onclick="window.open(window.location.href, ``, `popup,width=600,height=370,scrollbars=no,resizable=no,status=no,location=no,toolbar=no,menubar=no,`)">Fases</a>
+        <div class="flex-1 w-full flex flex-col gap-2">
+            <div id="phase" class="flex badge-soft badge-accent w-full rounded-xl overflow-hidden">
+                <span class="flex flex-col *:p-0 *:px-2 *:rounded-none">
+                    @foreach (var idx in Enumerable.Range(0,4)) {
+                        <div class="badge @(idx >= PhaseStep ? "badge-soft" : "") badge-success cursor-pointer" @onclick="() => PhaseStep = idx + 1">@(idx + 1)</div>
+                    }
+                </span>
+                <div class="flex-1 flex flex-col">
+                    <ul class="menu rounded-box w-full p-2 flex-1 flex flex-col justify-around">
+                        <li @onclick="() => SetPhase(Phase.Work)">
+                            <span class="flex flex-row items-center justify-center">
+                                @StatusRender(WorkTime)
+                                <span class="flex-1">Trabajo</span>
+                                <div class="text-success">25 Mins</div>
+                            </span>
+                        </li>
+                        <li @onclick="() => SetPhase(Phase.Break)">
+                            <span class="flex flex-row items-center justify-center">
+                                @StatusRender(BreakTime)
+                                <span class="flex-1">Descanso</span>
+                                <div class="text-success">5 Mins</div>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div id="phase" class="flex badge-soft badge-accent w-full rounded-xl overflow-hidden">
+                <div class="flex flex-col *:p-0 *:px-1 *:rounded-none">
+                    <div class="badge  badge-success opacity-0">1</div>
+                </div>
+                <div class="flex-1 flex items-center px-2">
+                    <ul class="menu rounded-box w-full">
+                        <li @onclick="() => SetPhase(Phase.LongBreak)">
+                            <span class="flex flex-row items-center justify-center">
+                                @StatusRender(LongBreakTime)
+                                <span class="flex-1">Descanso largo</span>
+                                <div class="text-success">15 Mins</div>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+@code {
+    public enum Phase { Work, Break, LongBreak }
+
+    public double porcentaje { get; set; } = 50.0;
+
+    private TimeSpan MaxTime { get; set; } = TimeSpan.Zero;
+    private TimeSpan CurrentTime { get; set; } = TimeSpan.Zero;
+    private TimeSpan Chronometer { get; set; } = TimeSpan.Zero;
+    private bool isRunning { get; set; } = false;
+
+    private int PhaseStep { get; set; } = 1;
+    private Phase PhaseType { get; set; } = Phase.Work;
+    private bool WorkTime { get; set; } = true;
+    private bool BreakTime { get; set; } = false;
+    private bool LongBreakTime { get; set; } = false;
+
+    public async Task TimerTick() {
+        if (isRunning) return;
+        isRunning = true;
+        CurrentTime += new TimeSpan(0, 0, 1);
+        Chronometer -= new TimeSpan(0, 0, 1);
+
+        while (isRunning) {
+            if (CurrentTime < TimeSpan.Zero) return; // Break
+            porcentaje = CalcularPorcentaje(CurrentTime.TotalSeconds, 0, MaxTime.TotalSeconds);
+            CurrentTime -= new TimeSpan(0, 0, 1);
+            Chronometer += new TimeSpan(0, 0, 1);
+            InvokeAsync(StateHasChanged);
+            await Task.Delay(1000);
+        }
+    }
+
+    protected override async Task OnInitializedAsync() {
+        await SetPhase(PhaseType);
+    }
+
+    public async Task SetPhase(Phase phase) {
+        PhaseType = phase;
+
+        WorkTime = phase is Phase.Work or Phase.Break or Phase.LongBreak;
+        BreakTime = phase is Phase.Break or Phase.LongBreak;
+        LongBreakTime = phase is Phase.LongBreak;
+
+        MaxTime = phase switch {
+            Phase.Work => new TimeSpan(0,25,0),
+            Phase.Break => new TimeSpan(0,5,0),
+            Phase.LongBreak => new TimeSpan(0,15,0),
+            _ => TimeSpan.Zero
+        };
+        CurrentTime = MaxTime;
+        porcentaje = 100;
+
+        StateHasChanged();
+    }
+
+    public async Task Play() {
+        InvokeAsync(TimerTick);
+    }
+
+    public async Task Stop() {
+        isRunning = false;
+        StateHasChanged();
+    }
+
+    public async Task Reset() {
+        isRunning = false;
+        await SetPhase(PhaseType);
+        StateHasChanged();
+    }
+
+    public double CalcularPorcentaje(double value, double min, double max) {
+        // 1. Convertir los valores a double para cálculos precisos.
+        double valorActual = Math.Round(value, 2);
+        double valorMinimo = Math.Round(min, 2);
+        double valorMaximo = Math.Round(max, 2);
+
+        double valorClampeado = Math.Max(valorMinimo, Math.Min(valorActual, valorMaximo));
+        double rangoTotal = valorMaximo - valorMinimo;
+
+        if (rangoTotal == 0.0) return (valorClampeado == valorMaximo) ? 100.0 : 0.0;
+
+        double porcentaje = ((valorClampeado - valorMinimo) / rangoTotal) * 100.0;
+        return Math.Round(porcentaje, 3);
+    }
+}
