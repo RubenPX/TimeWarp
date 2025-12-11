@@ -32,7 +32,7 @@ jobs:
       - name: Publish
         run: dotnet publish TimeWarp/TimeWarp.csproj -c Release -o publish
 
-      - name: Ajustar base href para GitHub Pages
+      - name: Adjust base href for GitHub Pages
         run: |
           index_file="publish/wwwroot/index.html"
           sed -i 's|<base href="/"|<base href="/TimeWarp/"|' "$index_file"
