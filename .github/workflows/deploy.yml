@@ -35,7 +35,7 @@ jobs:
       - name: Adjust base href for GitHub Pages
         run: |
           index_file="publish/wwwroot/index.html"
-          sed -i 's|<base href="/"|<base href="/TimeWarp/"|' "$index_file"
+          sed -i 's|<base href="/">|<base href="/TimeWarp/">|' "$index_file"
           cp "$index_file" publish/wwwroot/404.html
 
       - name: Upload artifact
