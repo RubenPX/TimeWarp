@@ -15,6 +15,7 @@
     <!-- If you add any scoped CSS files, uncomment the following to load them
     <link href="TimeWarp.styles.css" rel="stylesheet" /> -->
 
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script type="importmap"></script>
 </head>
 
@@ -33,6 +34,30 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script>
+        window.PlayVideo = (dotNetHelper, method) => {
+            console.log("PlayVideo");
+            setTimeout(() => {
+                console.log("PlayVideo");
+                new YT.Player('ytplayer', {
+                    videoId: 'R0uNPIa-I9c',
+                    height: '85',
+                    width: '285',
+                    controls: 0,
+                    disablekb: 1,
+                    playerVars: { 'playsinline': 1 },
+                    events: {
+                        'onReady': (event) => event.target.playVideo(),
+                        'onStateChange': (event) => {
+                            if (event.data == YT.PlayerState.ENDED) {
+                                dotNetHelper.invokeMethodAsync(method);
+                            }
+                        }
+                    }
+                });
+            }, 100);
+        }
+    </script>
 </body>
 
 </html>

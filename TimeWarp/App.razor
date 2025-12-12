@@ -1,4 +1,13 @@
 ﻿
+@{ var Emoji = PhaseType switch {
+    Phase.Work => "🎯",
+    Phase.Break => "🧘",
+    Phase.LongBreak => "💾",
+    _ => ""
+}; }
+
+<PageTitle>@(isRunning ? Emoji : "⏸️") @($"{CurrentTime.Minutes.ToString("00")}:{CurrentTime.Seconds.ToString("00")}") - TimeWarp</PageTitle>
+
 @{
 RenderFragment<bool> StatusRender = (bool isReady) =>
     @<div class="inline-grid *:[grid-area:1/1]">
@@ -8,7 +17,7 @@ RenderFragment<bool> StatusRender = (bool isReady) =>
     </div>;
 }
 
-<main class="flex gap-2">
+<main class="flex gap-2 relative">
     <section class="flex flex-col gap-2">
         <div id="Pomodoro" class="alert alert-info alert-outline flex items-center justify-center flex flex-col">
             <code class="radial-progress text-4xl !text-green-500" style="--value:@(porcentaje.ToString("00")); --size:12rem; --thickness: 10px;" role="progressbar">
@@ -71,12 +80,34 @@ RenderFragment<bool> StatusRender = (bool isReady) =>
                         </li>
                     </ul>
                 </div>
+                
+            </div>
+            <div class="w-[285px] h-[85px] relative">
+                @if (PlayTone) {
+                    <div>
+                        <div id="ytplayer" class="mx-auto rounded-xl overflow-hidden absolute top-0 left-0">
+                        </div>
+
+                        <div class="absolute top-0 right-0 w-full h-full cursor-pointer flex items-center justify-center bg-info/10 rounded-xl overflow-hidden" @onclick="() => PlayTone = !PlayTone">
+                            <div role="alert" class="alert alert-info m-auto w-fit p-2">
+                                <span><i class="nf nf-fa-close text-xl" /></span>
+                            </div>
+                        </div>
+                    </div>
+                } else {
+                    <div role="alert" class="alert alert-info alert-soft text-center flex w-[285px] h-[85px]" @onclick="PlayVideo">
+                        <span class="m-auto"><i class="nf nf-oct-video text-5xl" /></span>
+                    </div>
+                }
             </div>
         </div>
     </section>
+
+    
 </main>
 
 @code {
+    [Inject] IJSRuntime runtime { get; set; }
     public enum Phase { Work, Break, LongBreak }
 
     public double porcentaje { get; set; } = 50.0;
@@ -92,6 +123,8 @@ RenderFragment<bool> StatusRender = (bool isReady) =>
     private bool BreakTime { get; set; } = false;
     private bool LongBreakTime { get; set; } = false;
 
+    private bool PlayTone { get; set; } = false;
+
     public async Task TimerTick() {
         if (isRunning) return;
         isRunning = true;
@@ -99,13 +132,39 @@ RenderFragment<bool> StatusRender = (bool isReady) =>
         Chronometer -= new TimeSpan(0, 0, 1);
 
         while (isRunning) {
-            if (CurrentTime < TimeSpan.Zero) return; // Break
-            porcentaje = CalcularPorcentaje(CurrentTime.TotalSeconds, 0, MaxTime.TotalSeconds);
+            if (CurrentTime <= TimeSpan.Zero) {
+                isRunning = false;
+                CurrentTime = TimeSpan.Zero;
+                porcentaje = CalcularPorcentaje(1, 0, 0);
+                InvokeAsync(StateHasChanged);
+                return;
+            }
+            porcentaje = CalcularPorcentaje(CurrentTime.TotalSeconds, 1, MaxTime.TotalSeconds+1);
             CurrentTime -= new TimeSpan(0, 0, 1);
             Chronometer += new TimeSpan(0, 0, 1);
+            if (CurrentTime <= (TimeSpan.Zero + new TimeSpan(0, 0, 1))) OnTimeEnd();
             InvokeAsync(StateHasChanged);
             await Task.Delay(1000);
         }
+    }
+
+    private async Task OnTimeEnd() {
+
+        await PlayVideo();
+    }
+
+    [JSInvokable]
+    public async Task DisableVideo() {
+        PlayTone = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PlayVideo() {
+        PlayTone = true;
+        await InvokeAsync(StateHasChanged);
+
+        var dotNetRef = DotNetObjectReference.Create(this);
+        await runtime.InvokeVoidAsync("PlayVideo", dotNetRef, nameof(DisableVideo));
     }
 
     protected override async Task OnInitializedAsync() {
