@@ -1,0 +1,23 @@
+{
+  "name": "TimeWarp",
+  "short_name": "TW",
+  "id": "./",
+  "start_url": "./",
+  "display": "fullscreen",
+  "display_override": "fullscreen",
+  "background_color": "#1d232a",
+  "theme_color": "#1d232a",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ]
+}
