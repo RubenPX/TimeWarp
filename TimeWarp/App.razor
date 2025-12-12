@@ -88,14 +88,14 @@ RenderFragment<bool> StatusRender = (bool isReady) =>
                         <div id="ytplayer" class="mx-auto rounded-xl overflow-hidden absolute top-0 left-0">
                         </div>
 
-                        <div class="absolute top-0 right-0 w-full h-full cursor-pointer flex items-center justify-center bg-info/10 rounded-xl overflow-hidden" @onclick="() => PlayTone = !PlayTone">
+                        <div class="absolute top-0 right-0 w-full h-full cursor-pointer flex items-center justify-center bg-info/10 rounded-xl overflow-hidden border-2 border-info" @onclick="() => PlayTone = !PlayTone">
                             <div role="alert" class="alert alert-info m-auto w-fit p-2">
                                 <span><i class="nf nf-fa-close text-xl" /></span>
                             </div>
                         </div>
                     </div>
                 } else {
-                    <div role="alert" class="alert alert-info alert-soft text-center flex w-[285px] h-[85px]" @onclick="PlayVideo">
+                    <div role="alert" class="alert alert-info alert-soft text-center flex w-[285px] h-[85px] cursor-pointer" @onclick="PlayVideo">
                         <span class="m-auto"><i class="nf nf-oct-video text-5xl" /></span>
                     </div>
                 }
